@@ -1,4 +1,4 @@
-package net.ovonsame.modding.enumiration;
+package net.ovonsame.modding.enumeration;
 
 /**
  * Enumeration {@code Platform} represents all supported and the most popular platforms for posting Minecraft integrations

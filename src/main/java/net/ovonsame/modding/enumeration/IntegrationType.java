@@ -1,7 +1,7 @@
-package net.ovonsame.modding.enumiration;
+package net.ovonsame.modding.enumeration;
 
-import net.ovonsame.modding.enumiration.category.*;
-import net.ovonsame.modding.enumiration.loader.*;
+import net.ovonsame.modding.enumeration.category.*;
+import net.ovonsame.modding.enumeration.loader.*;
 import net.ovonsame.modding.interfaces.ICategory;
 import net.ovonsame.modding.interfaces.ILoader;
 

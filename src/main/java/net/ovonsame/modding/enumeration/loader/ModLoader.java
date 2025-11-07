@@ -1,4 +1,4 @@
-package net.ovonsame.modding.enumiration.loader;
+package net.ovonsame.modding.enumeration.loader;
 
 import net.ovonsame.modding.interfaces.ILoader;
 

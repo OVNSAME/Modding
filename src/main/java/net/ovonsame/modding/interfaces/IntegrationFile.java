@@ -1,9 +1,9 @@
 package net.ovonsame.modding.interfaces;
 
 import net.ovonsame.modding.Version;
-import net.ovonsame.modding.enumiration.IntegrationType;
-import net.ovonsame.modding.enumiration.Side;
-import net.ovonsame.modding.enumiration.loader.*;
+import net.ovonsame.modding.enumeration.IntegrationType;
+import net.ovonsame.modding.enumeration.Side;
+import net.ovonsame.modding.enumeration.loader.*;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.net.URL;

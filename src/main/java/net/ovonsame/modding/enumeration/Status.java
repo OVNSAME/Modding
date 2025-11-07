@@ -1,4 +1,4 @@
-package net.ovonsame.modding.enumiration;
+package net.ovonsame.modding.enumeration;
 
 /**
  * Enumeration {@code Status} represents all possible integration statuses

@@ -1,11 +1,11 @@
 package net.ovonsame.modding.interfaces;
 
 import net.ovonsame.modding.Version;
-import net.ovonsame.modding.enumiration.Platform;
-import net.ovonsame.modding.enumiration.Status;
-import net.ovonsame.modding.enumiration.IntegrationType;
-import net.ovonsame.modding.enumiration.category.*;
-import net.ovonsame.modding.enumiration.loader.ModLoader;
+import net.ovonsame.modding.enumeration.Platform;
+import net.ovonsame.modding.enumeration.Status;
+import net.ovonsame.modding.enumeration.IntegrationType;
+import net.ovonsame.modding.enumeration.category.*;
+import net.ovonsame.modding.enumeration.loader.ModLoader;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 

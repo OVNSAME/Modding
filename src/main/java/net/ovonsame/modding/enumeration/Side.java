@@ -1,4 +1,4 @@
-package net.ovonsame.modding.enumiration;
+package net.ovonsame.modding.enumeration;
 
 /**
  * Enumeration for Minecraft environment sides which could be {@code CLIENT}, {@code SERVER} or {@code ANY}

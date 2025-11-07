@@ -11,17 +11,17 @@ import java.time.Instant;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
-import net.ovonsame.modding.enumiration.*;
-import net.ovonsame.modding.enumiration.category.*;
-import net.ovonsame.modding.enumiration.loader.*;
+import net.ovonsame.modding.enumeration.*;
+import net.ovonsame.modding.enumeration.category.*;
+import net.ovonsame.modding.enumeration.loader.*;
 import net.ovonsame.modding.interfaces.*;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-import static net.ovonsame.modding.enumiration.Status.*;
-import static net.ovonsame.modding.enumiration.Platform.*;
-import static net.ovonsame.modding.enumiration.IntegrationType.*;
-import static net.ovonsame.modding.enumiration.Side.*;
+import static net.ovonsame.modding.enumeration.Status.*;
+import static net.ovonsame.modding.enumeration.Platform.*;
+import static net.ovonsame.modding.enumeration.IntegrationType.*;
+import static net.ovonsame.modding.enumeration.Side.*;
 
 /**
  * Class {@code Modding} contains private wrapper classes for each supported integration platform which implements specific interfaces

@@ -1,4 +1,4 @@
-package net.ovonsame.modding.enumiration.category;
+package net.ovonsame.modding.enumeration.category;
 
 import net.ovonsame.modding.interfaces.ICategory;
 

@@ -6,8 +6,8 @@ import net.ovonsame.modding.enumeration.Status;
 import net.ovonsame.modding.enumeration.IntegrationType;
 import net.ovonsame.modding.enumeration.category.*;
 import net.ovonsame.modding.enumeration.loader.ModLoader;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
+import net.ovonsame.modding.interfaces.authority.*;
+import org.jetbrains.annotations.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -15,14 +15,18 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-public interface Integration {
+public interface Integration extends Iterable<IntegrationFile> {
+    default @NotNull Iterator<IntegrationFile> iterator() {
+        return getFiles().iterator();
+    }
+
     /**
-     * @return The title of the integration
+     * @return A title of the integration
      */
     String getTitle();
 
     /**
-     * @return The slug of the integration.
+     * @return A slug of the integration.
      */
     String getSlug();
 
@@ -32,50 +36,85 @@ public interface Integration {
     String getFullDescription();
 
     /**
-     * @return The identifier of the integration
+     * @return An identifier of the integration
      */
     String getId();
 
     /**
-     * @return The license of the integration
+     * @return A license of the integration
      */
     String getLicense();
 
     /**
-     * @return The organisation name which owns the project. Can be null because projects can be created by individuals
+     * @return Organisation which owns the project. Can be null because projects can be created by individuals
+     * @see Organisation
      */
-    @Nullable String getOrganisation();
+    @NotNull
+    default Organisation getOrganisation() {
+        var a = getAuthors();
+        return new Organisation() {
+            @Override
+            public Author getOwner() {
+                return a.iterator().next();
+            }
+
+            @Override
+            public String getName() {
+                return getCleanTitle() + " Organisation";
+            }
+
+            @Override
+            public @NotNull Iterator<Author> iterator() {
+                return a.iterator();
+            }
+        };
+    }
 
     /**
      * @return The team name which has created the project. Can be null as projects can be created by individuals
+     * @see Team
      */
-    @Nullable String getTeam();
+    @NotNull
+    default Team getTeam() {
+        return new Team() {
+            @Override
+            public String getName() {
+                return getCleanTitle() + " Team";
+            }
+
+            @Override
+            public @NotNull Iterator<Author> iterator() {
+                return getAuthors().iterator();
+            }
+        };
+    }
 
     /**
-     * @return The names of all authors of the project
+     * @return Set of all authors
+     * @see Author
      */
-    Set<String> getAuthors();
+    Set<Author> getAuthors();
 
     /**
-     * @return The date when the integration was published
+     * @return A date when the integration was published
      * @see Date
      */
     Date getPublished();
 
     /**
-     * @return The date when the integration was last updated
+     * @return A date when the integration was last updated
      * @see Date
      */
     Date getUpdated();
 
     /**
-     * @return The date of approval of the integration. Can be null as it is not always given
+     * @return A date of approval of the integration. Can be null as it is not always given
      * @see Date
      */
     @Nullable Date getApproved();
 
     /**
-     * @return The type of the integration
+     * @return A type of the integration
      * @see IntegrationType
      */
     IntegrationType getType();
@@ -102,12 +141,12 @@ public interface Integration {
     Status getStatus();
 
     /**
-     * @return The total downloads of the integration
+     * @return Total downloads of the integration
      */
     int getDownloads();
 
     /**
-     * @return The total likes of the integration
+     * @return Total likes of the integration
      */
     int getLikes();
 
@@ -160,6 +199,17 @@ public interface Integration {
      */
     Platform getPlatform();
 
+    default String getCleanTitle() {
+        return getTitle()
+                .replaceAll("\\(.*?\\)", "")
+                .replaceAll("\\[.*?]", "")
+                .replaceAll("\\{.*?}", "")
+                .replaceAll("<.*?>", "")
+                .replaceAll("\\s{2,}", " ")
+                .replaceAll("[^\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{Cf}\\p{Cs}\\s]", "")
+                .trim();
+    }
+
     /**
      * Generates a definition file for the integration with the name as the slug and the extension as {@code .yaml}.
      * File contains main section as the version name and "gradle" section in every version.
@@ -179,14 +229,7 @@ public interface Integration {
         ) return;
 
         final String slug = getSlug().replace("-", "_");
-        final String name = getTitle()
-                .replaceAll("\\(.*?\\)", "")
-                .replaceAll("\\[.*?]", "")
-                .replaceAll("\\{.*?}", "")
-                .replaceAll("<.*?>", "")
-                .replaceAll("\\s{2,}", " ")
-                .replaceAll("[^\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{Cf}\\p{Cs}\\s]", "")
-                .trim();
+        final String name = getCleanTitle();
 
         final File file = new File(directory.toString(), slug + ".yaml");
 

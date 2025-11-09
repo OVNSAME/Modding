@@ -3,20 +3,17 @@ package net.ovonsame.modding;
 import com.google.gson.*;
 
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
-import java.util.zip.GZIPInputStream;
 
 import net.ovonsame.modding.enumeration.*;
 import net.ovonsame.modding.enumeration.category.*;
 import net.ovonsame.modding.enumeration.loader.*;
 import net.ovonsame.modding.interfaces.*;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Unmodifiable;
+import net.ovonsame.modding.interfaces.authority.Author;
+import org.jetbrains.annotations.*;
 
 import static net.ovonsame.modding.enumeration.Status.*;
 import static net.ovonsame.modding.enumeration.Platform.*;
@@ -24,13 +21,11 @@ import static net.ovonsame.modding.enumeration.IntegrationType.*;
 import static net.ovonsame.modding.enumeration.Side.*;
 
 /**
- * Class {@code Modding} contains private wrapper classes for each supported integration platform which implements specific interfaces
- * @see IntegrationWrapper
+ * Class {@code Modding} contains private wrapper classes for each supported integration platform which implements the {@code Integration} interface
+ * @see Wrapper
  * @see Integration
  */
 public final class Modding {
-    private static final Gson GSON = new Gson();
-
     /**
      * Method ables you to get any integration from any supported platform and work with it
      * @param platform Platform to get the integration from
@@ -39,7 +34,7 @@ public final class Modding {
      * @return Integration from the specified platform with the specified identifier
      * @throws IOException If the integration is not found, key is not provided or is invalid and the platform requires it, if some errors occurs while connecting with the platform
      * @see Integration
-     * @see IntegrationWrapper
+     * @see Wrapper
      * @see Platform
      */
     public static Integration getIntegration(final Platform platform, final String identifier, final @Nullable String key) throws IOException {
@@ -51,67 +46,29 @@ public final class Modding {
     }
 
     /**
-     * The main abstract wrapper class for all platforms wrappers. It implements the {@link Integration} interface
+     *
+     * @param i Lazy Integration
+     * @param key Optional key which is required for some platforms
+     * @return Integration from the specified platform with the specified identifier
+     * @throws IOException If the integration is not found, key is not provided or is invalid and the platform requires it, if some errors occurs while connecting with the platform
+     * @see Integration
+     * @see Wrapper
+     * @see LazyIntegration
      */
-    private static abstract class IntegrationWrapper implements Integration {
-        protected final String modid;
-        protected final @Nullable String key;
-
-        public IntegrationWrapper(final String modid, final @Nullable String key) {
-            this.modid = modid;
-            this.key = key;
-        }
-
-        protected abstract String connect(final String endpoint, final @Nullable String key) throws IOException;
-
-        protected JsonObject getResponse(final String endpoint, final @Nullable String key) throws IOException {
-            return GSON.fromJson(connect(endpoint, key), JsonObject.class);
-        }
-
-        protected JsonArray getResponseArray(final String endpoint, final @Nullable String key) throws IOException {
-            return GSON.fromJson(connect(endpoint, key), JsonArray.class);
-        }
+    public static Integration getIntegration(final LazyIntegration i, final @Nullable String key) throws IOException {
+        return getIntegration(i.platform(), i.identifier(), key);
     }
 
-    /**
-     * {@code ModrinthWrapper} is a wrapper class for Modrinth platform
-     */
-    private static final class ModrinthWrapper extends IntegrationWrapper {
+    private static final class ModrinthWrapper extends Wrapper implements Integration {
         private final JsonObject data;
         private final JsonArray versions;
+        private final JsonArray authors;
 
         public ModrinthWrapper(final String modid, final @Nullable String key) throws IOException {
             super(modid, key);
-            data = getResponse("/project/" + modid, key);
-            versions = getResponseArray("/project/" + modid + "/version", key);
-        }
-
-        @Override
-        protected String connect(String endpoint, @Nullable String key) throws IOException {
-            final URL url = new URL(MODRINTH.getUrl() + endpoint);
-            final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setRequestProperty("User-Agent", "ModdingLibrary/1.0");
-            if(MODRINTH.isKeyRequired()) {
-                if(key != null) {
-                    con.setRequestProperty("x-api-key", key);
-                } else {
-                    throw new IOException("API key is required");
-                }
-            }
-            final int code = con.getResponseCode();
-            if (code == HttpURLConnection.HTTP_OK) {
-                final BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-                return response.toString();
-            } else {
-                throw new RuntimeException("Failed to fetch data: HTTP error code " + code);
-            }
+            data = MODRINTH.getResponse("/project/" + modid, key);
+            versions = MODRINTH.getResponseArray("/project/" + modid + "/version", key);
+            authors = MODRINTH.getResponseArray("/team/" + data.get("team").getAsString() + "/members", key);
         }
 
         @Override
@@ -129,11 +86,6 @@ public final class Modding {
             return data.get("body").getAsString();
         }
 
-        @Override @Nullable
-        public String getTeam() {
-            return data.has("team") ? data.get("team").getAsString() : null;
-        }
-
         @Override
         public IntegrationType getType() {
             return IntegrationType.valueOf(data.get("project_type").getAsString().toUpperCase());
@@ -147,11 +99,6 @@ public final class Modding {
         @Override
         public String getLicense() {
             return data.get("license").getAsJsonObject().get("id").getAsString();
-        }
-
-        @Override @Nullable
-        public String getOrganisation() {
-            return data.has("organization") ? data.get("organization").getAsString() : null;
         }
 
         @Override
@@ -245,17 +192,22 @@ public final class Modding {
         }
 
         @Override
-        public Set<String> getAuthors() {
+        public Set<Author> getAuthors() {
             try {
-                final String team = data.get("team").getAsString();
-                final JsonArray members = getResponseArray("/team/" + team + "/members", key);
-                final Set<String> authors = new HashSet<>(members.size());
-                for (JsonElement m : members) {
-                    final JsonObject member = m.getAsJsonObject();
-                    final String name = member.get("user").getAsJsonObject().get("username").getAsString();
-                    authors.add(name);
+                Author owner = null;
+                final Set<Author> set = new HashSet<>(authors.size());
+                final Set<Author> members = new HashSet<>(authors.size());
+
+                for (JsonElement m : authors) {
+                    final JsonObject object = m.getAsJsonObject().get("user").getAsJsonObject();
+                    final Author a = Authority.getAuthor(getPlatform(), object.get("username").getAsString(), key);
+                    if(m.getAsJsonObject().has("role") && m.getAsJsonObject().get("role").getAsString().equalsIgnoreCase("author")) owner = a;
+                    else members.add(a);
                 }
-                return authors;
+
+                if(owner != null) set.add(owner);
+                set.addAll(members);
+                return set;
             } catch (Exception e) {
                 return Collections.emptySet();
             }
@@ -383,7 +335,7 @@ public final class Modding {
                 }
                 if (pref == null) continue;
                 final JsonObject pf = pref;
-                final IntegrationWrapper parent = this;
+                final Integration parent = this;
                 final IntegrationType type = getType();
                 fileList.add(new IntegrationFile() {
 
@@ -475,10 +427,10 @@ public final class Modding {
 
                     @Override
                     public String[] getVersions() {
-                        final JsonArray vers = ver.get("game_versions").getAsJsonArray();
-                        final String[] vs = new String[vers.size()];
-                        for (int j = 0; j < vers.size(); j++) {
-                            vs[j] = vers.get(j).getAsString();
+                        final JsonArray versions = ver.get("game_versions").getAsJsonArray();
+                        final String[] vs = new String[versions.size()];
+                        for (int j = 0; j < versions.size(); j++) {
+                            vs[j] = versions.get(j).getAsString();
                         }
                         return vs;
                     }
@@ -493,9 +445,9 @@ public final class Modding {
                         if (dependencies != null) {
                             return dependencies;
                         }
-                        final JsonArray deps = ver.get("dependencies").getAsJsonArray();
+                        final JsonArray array = ver.get("dependencies").getAsJsonArray();
                         final List<IntegrationFile> dependencies = new ArrayList<>();
-                        for (JsonElement e : deps) {
+                        for (JsonElement e : array) {
                             final JsonObject d = e.getAsJsonObject();
                             if (d.get("dependency_type").getAsString().equals("required")) {
                                 final String projid = d.get("project_id").getAsString();
@@ -540,45 +492,14 @@ public final class Modding {
         }
     }
 
-    /**
-     * {@code CurseforgeWrapper} is a wrapper class for CurseForge platform
-     */
-    private static final class CurseforgeWrapper extends IntegrationWrapper {
+    private static final class CurseforgeWrapper extends Wrapper implements Integration {
         private final JsonObject data;
         private final JsonArray versions;
 
         public CurseforgeWrapper(final String modid, final @Nullable String key) throws IOException {
             super(modid, key);
-            this.data = getResponse("/mods/" + modid, key).get("data").getAsJsonObject();
-            this.versions = getResponse("/mods/" + modid + "/files?pageSize=10000", key).get("data").getAsJsonArray();
-        }
-
-        @Override
-        protected String connect(String endpoint, @Nullable String key) throws IOException {
-            final URL url = new URL(CURSEFORGE.getUrl() + endpoint);
-            final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setRequestProperty("User-Agent", "ModdingLibrary/1.0");
-            if(CURSEFORGE.isKeyRequired()) {
-                if(key != null) {
-                    con.setRequestProperty("x-api-key", key);
-                } else {
-                    throw new IOException("API key is required");
-                }
-            }
-            final int code = con.getResponseCode();
-            if (code == HttpURLConnection.HTTP_OK) {
-                final BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-                return response.toString();
-            } else {
-                throw new RuntimeException("Failed to fetch data: HTTP error code " + code);
-            }
+            this.data = CURSEFORGE.getResponse("/mods/" + modid, key).get("data").getAsJsonObject();
+            this.versions = CURSEFORGE.getResponse("/mods/" + modid + "/files?pageSize=10000", key).get("data").getAsJsonArray();
         }
 
         @Override
@@ -597,15 +518,10 @@ public final class Modding {
         @Override
         public String getFullDescription() {
             try {
-                return getResponse("/mods/" + getId() + "/description", key).get("data").getAsString();
+                return CURSEFORGE.getResponse("/mods/" + getId() + "/description", key).get("data").getAsString();
             } catch (IOException e) {
                 return "";
             }
-        }
-
-        @Override
-        public String getTeam() {
-            return data.get("authors").getAsJsonArray().get(0).getAsJsonObject().get("name").getAsString();
         }
 
         @Override
@@ -619,14 +535,6 @@ public final class Modding {
         @Override @Deprecated
         public String getLicense() {
             return "Unknown";
-        }
-
-        /**
-         * @return Always null because CurseForge API does not provide organisation information
-         */
-        @Override @Deprecated @Nullable
-        public String getOrganisation() {
-            return null;
         }
 
         @Override
@@ -740,12 +648,14 @@ public final class Modding {
         }
 
         @Override
-        public Set<String> getAuthors() {
+        public Set<Author> getAuthors() {
             try {
-                final JsonArray authorsar = data.get("authors").getAsJsonArray();
-                final Set<String> authors = new HashSet<>(authorsar.size());
-                for (int i = 0; i < authorsar.size(); i++) {
-                    authors.add(authorsar.get(i).getAsJsonObject().get("name").getAsString());
+                final JsonArray array = data.get("authors").getAsJsonArray();
+                final Set<Author> authors = new HashSet<>(array.size());
+
+                for (JsonElement i : array) {
+                    final Author a = Authority.getAuthor(getPlatform(), i.getAsJsonObject().get("id").getAsString(), key);
+                    authors.add(a);
                 }
                 return authors;
             } catch (Exception e) {
@@ -939,7 +849,7 @@ public final class Modding {
             final List<IntegrationFile> list = new ArrayList<>();
             final String modid = getId();
             final @Nullable String key = this.key;
-            final IntegrationWrapper parent = this;
+            final Integration parent = this;
             final IntegrationType type = getType();
             for (int i = 0; i < versions.size(); i++) {
                 final JsonObject object = versions.get(i).getAsJsonObject();
@@ -978,7 +888,7 @@ public final class Modding {
                     public String getChangelog() {
                         String changelog;
                         try {
-                            final JsonObject json = getResponse("/mods/" + modid + "/files/" + object.get("id").getAsString() + "/changelog", key);
+                            final JsonObject json = CURSEFORGE.getResponse("/mods/" + modid + "/files/" + object.get("id").getAsString() + "/changelog", key);
                             changelog = json.get("data").getAsString();
                             return changelog;
                         } catch (Exception e) {
@@ -1122,79 +1032,15 @@ public final class Modding {
         }
     }
 
-    /**
-     * {@code SpigetWrapper} is a wrapper class for Spiget platform
-     */
-    private static final class SpigetWrapper extends IntegrationWrapper {
+    private static final class SpigetWrapper extends Wrapper implements Integration {
         private final JsonObject data;
         private final JsonArray versions;
         private final String url = "https://www.spigotmc.org/";
 
         public SpigetWrapper(final String modid, final @Nullable String key) throws IOException {
             super(modid, key);
-            this.data = getResponse("/resources/" + modid, key);
-            this.versions = getResponseArray("/resources/" + modid + "/versions?size=10000", key);
-        }
-
-        @Override
-        protected JsonObject getResponse(final String endpoint, final @Nullable String key) throws IOException {
-            final JsonElement json = JsonParser.parseString(connect(endpoint, key));
-            if (!json.isJsonObject()) {
-                throw new JsonSyntaxException("Expected JsonObject but got " + json.getClass().getSimpleName() + ": " + json);
-            }
-            return json.getAsJsonObject();
-        }
-
-        @Override
-        protected JsonArray getResponseArray(final String endpoint, final @Nullable String key) throws IOException {
-            final JsonElement json = JsonParser.parseString(connect(endpoint, key));
-            if (!json.isJsonArray()) {
-                throw new JsonSyntaxException("Expected JsonArray but got " + json.getClass().getSimpleName() + ": " + json);
-            }
-            return json.getAsJsonArray();
-        }
-
-        @Override
-        protected String connect(final String endpoint, final @Nullable String key) throws IOException {
-            final URL url = new URL(SPIGET.getUrl() + endpoint);
-            final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setRequestProperty("User-Agent", "ModdingLibrary/1.0");
-            con.setRequestProperty("Accept-Encoding", "gzip");
-            con.setConnectTimeout(20000);
-            con.setReadTimeout(20000);
-            if(SPIGET.isKeyRequired()) {
-                if(key != null) {
-                    con.setRequestProperty("x-api-key", key);
-                } else {
-                    throw new IOException("API key is required");
-                }
-            }
-            try (final InputStream in = getPossiblyDecompressedStream(con);
-                 final ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-
-                final byte[] chunk = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = in.read(chunk)) != -1) {
-                    buffer.write(chunk, 0, bytesRead);
-                }
-
-                final String response = buffer.toString(StandardCharsets.UTF_8);
-                con.disconnect();
-                return response;
-            } catch (IOException e) {
-                con.disconnect();
-                throw e;
-            }
-        }
-
-        private InputStream getPossiblyDecompressedStream(HttpURLConnection connection) throws IOException {
-            final InputStream inputStream = connection.getInputStream();
-            final String encoding = connection.getContentEncoding();
-            if (encoding != null && encoding.equalsIgnoreCase("gzip")) {
-                return new GZIPInputStream(inputStream);
-            }
-            return inputStream;
+            this.data = SPIGET.getResponse("/resources/" + modid, key);
+            this.versions = SPIGET.getResponseArray("/resources/" + modid + "/versions?size=10000", key);
         }
 
         @Override
@@ -1225,22 +1071,6 @@ public final class Modding {
             return "Unknown";
         }
 
-        /**
-         * @return Always null as the Spiget API does not provide organisation information
-         */
-        @Override @Nullable @Deprecated
-        public String getOrganisation() {
-            return null;
-        }
-
-        /**
-         * @return Always null as the Spiget API does not provide team information
-         */
-        @Override @Nullable @Deprecated
-        public String getTeam() {
-            return null;
-        }
-
         @Override
         public IntegrationType getType() {
             return PLUGIN;
@@ -1253,18 +1083,25 @@ public final class Modding {
         }
 
         @Override
-        public Set<String> getAuthors() {
-            final Set<String> authors = new HashSet<>();
-            if(data.has("contributors")) {
-                final String[] contributors = data.get("contributors").getAsString().split(", ");
-                authors.addAll(Arrays.asList(contributors));
-            }
+        public Set<Author> getAuthors() {
+            final Set<Author> authors = new HashSet<>();
+
             try {
                 authors.add(
-                        getResponse("/authors/" + data.get("author").getAsJsonObject().get("id").getAsString(), this.key)
-                                .get("name").getAsString()
+                        Authority.getAuthor(getPlatform(), data.get("author").getAsJsonObject().get("id").getAsString(), this.key)
                 );
             } catch (IOException ignored) {}
+
+            if(data.has("contributors")) {
+                final String[] contributors = data.get("contributors").getAsString().split(", ");
+                for (String i : contributors) {
+                    try {
+                        final JsonArray array = SPIGET.getResponseArray("/search/authors/" + i + "?field=name", key);
+                        final Author a = Authority.getAuthor(getPlatform(), array.get(0).getAsJsonObject().get("id").getAsString(), this.key);
+                        if(authors.stream().noneMatch(g -> g.getId().equals(a.getId()))) authors.add(a);
+                    } catch (IOException ignored) {}
+                }
+            }
 
             return authors;
         }
@@ -1382,7 +1219,7 @@ public final class Modding {
         @Override @Unmodifiable
         public Collection<IntegrationFile> getFiles() {
             final List<IntegrationFile> files = new ArrayList<>();
-            final IntegrationWrapper parent = this;
+            final Integration parent = this;
             final Version[] t = getTested();
             final String drl = url + data.get("file").getAsJsonObject().get("url").getAsString().split("=")[0] + "=";
             for (int i = 0; i < versions.size(); i++) {

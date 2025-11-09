@@ -1,6 +1,22 @@
 # Modding
 Modding is a very lightweight Java library that adds new classes, interfaces and enumerations for full work with Minecraft's integrations from popular publishing platforms.
 
+### Main features
+
+You can add this project in your dependencies using JitPack.
+
+```groovy
+repositories {
+    maven {
+        url "https://jitpack.io"
+    }
+}
+
+dependencies {
+    implementation 'com.github.OVNSAME:Modding:1.2.0'
+}
+```
+
 Currently, it embraces three main platforms:
  - CurseForge
  - Modrinth
@@ -12,6 +28,7 @@ Method ```getIntegration``` from class ```Modding``` allows you to get any integ
 import java.io.IOException;
 import net.ovonsame.modding.Modding;
 import net.ovonsame.modding.interfaces.Integration;
+import net.ovonsame.modding.enumeration.Platform;
 
 public class Overview {
     public static void main(String[] args) {
@@ -27,6 +44,9 @@ public class Overview {
 Every platform has its own peculiarities and differences between others.
 Some may require API key in the method, like CurseForge. However, if platform does not require key, you can put ```null``` as the key. If key is not provided and the platform requires it, method will throw an exception.
 Also, some methods of Integration interface may return null or empty list because the platform does not provide info needed for the method. So be careful when using them and look at the annotations.
+
+In order not to load the integration immediately, but only to indicate the main criteria, the record class ```LazyIntegration``` is used. Platform and identifier are required in a constructor of the class. You can also use it in ```getIntegration``` method.
+More than that you can get lazy integrations as static fields of ```Integrations``` interface. There are listed popular mods and plugins from the platforms.
 
 ### Integration and Types
 
@@ -96,8 +116,9 @@ public class Overview {
             console.println(i.getId);
             console.println(i.getLicense());
 
-            if (i.getOrganisation() != null) console.println(i.getOrganisation);
-            if (i.getOrganisation() != null) console.println(i.getTeam());
+            console.println(i.getOrganisation.getName());
+            console.println(i.getTeam().getName());
+            console.println(i.getOrganisation().getOwner().getName());
 
             console.println(Arrays.toString(i.getAuthors()));
 
@@ -206,6 +227,64 @@ File has collections of dependencies which are presented by ```IntegrationFile``
 More than that, the interface has methods to get loaders and versions which are presented by the platform. It's not recommended to use them, because it's not always accurate and can be empty, but integration file can not be without versions. It's better to use ```getPossibleLoaders()``` and ```getPossibleVersions()``` methods.
 
 Also file has environment side which is represented by ```Side``` enumeration. Side represents environment where integration file is for. It can be ```CLIENT```, ```SERVER``` or ```ANY```.
+
+Project has three types of authorities represented as interfaces:
+ - ```Author``` a representation of a person registered on a platform
+ - ```Team``` a named group of authors, and it's also an ```Iterable``` of ```Author```
+ - ```Organisation``` is a subclass of ```Team``` and represents a team which has an owner
+
+Method ```getAuthor``` from class ```Authority``` allows you to get any author from any platform.
+
+```java
+import java.io.IOException;
+import net.ovonsame.modding.Authority;
+import net.ovonsame.modding.interfaces.authority.Author;
+import net.ovonsame.modding.enumeration.Platform;
+
+public class Overview {
+    public static void main(String[] args) {
+        try{
+            Author author = Authority.getAuthor(Platform.CURSEFORGE, "name", "key");
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+In ```Integration``` interface you can always get authors and convert them to a team or an organisation. They would have a typical name if group doesn't have a name.
+
+Below there are all methods of the ```Author``` interfaces.
+
+```java
+import java.io.IOException;
+import net.ovonsame.modding.Authority;
+import net.ovonsame.modding.interfaces.authority.Author;
+import net.ovonsame.modding.enumeration.Platform;
+import java.io.PrintStream;
+
+public class Overview {
+    public static void main(String[] args) {
+        try{
+            Author author = Authority.getAuthor(Platform.CURSEFORGE, "name", "key");
+            PrintStream console = System.out;
+            
+            console.println(author.getName());
+            
+            console.println(author.getId());
+            
+            console.println(author.getRegistered());
+            
+            console.println(author.getPlatform());
+            
+            if(author.getAvatar() != null) console.println(author.getAvatar());
+            
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 
 ### Generating Definitions
 

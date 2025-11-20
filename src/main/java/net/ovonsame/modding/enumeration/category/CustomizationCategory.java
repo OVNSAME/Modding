@@ -16,5 +16,6 @@ public enum CustomizationCategory implements ICategory {
     CONFIGURATION,
     WORLD_GEN,
     SCRIPTS,
-    FANCY_MENU
+    FANCY_MENU,
+    SKINS
 }

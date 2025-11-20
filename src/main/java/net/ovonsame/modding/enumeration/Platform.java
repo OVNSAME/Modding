@@ -27,11 +27,11 @@ public enum Platform {
         this.key = key;
     }
 
-    public String getUrl() {
+    public final String getUrl() {
         return url;
     }
 
-    public boolean isKeyRequired() {
+    public final boolean isKeyRequired() {
         return key;
     }
 
@@ -73,6 +73,7 @@ public enum Platform {
                     response.append(inputLine);
                 }
                 in.close();
+                System.out.println(response.toString());
                 return response.toString();
             } else {
                 throw new RuntimeException("Failed to fetch data: HTTP error code " + code);

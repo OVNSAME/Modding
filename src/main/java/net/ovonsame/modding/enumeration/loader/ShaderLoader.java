@@ -21,7 +21,7 @@ public enum ShaderLoader implements ILoader {
     }
 
     @Override
-    public Date getCreated() {
+    public final Date getCreated() {
         return created;
     }
 }

@@ -19,6 +19,7 @@ import static net.ovonsame.modding.enumeration.Status.*;
 import static net.ovonsame.modding.enumeration.Platform.*;
 import static net.ovonsame.modding.enumeration.IntegrationType.*;
 import static net.ovonsame.modding.enumeration.Side.*;
+import static net.ovonsame.modding.enumeration.Edition.*;
 
 /**
  * Class {@code Modding} contains private wrapper classes for each supported integration platform which implements the {@code Integration} interface
@@ -99,6 +100,11 @@ public final class Modding {
         @Override
         public String getLicense() {
             return data.get("license").getAsJsonObject().get("id").getAsString();
+        }
+
+        @Override
+        public Edition getEdition() {
+            return JAVA;
         }
 
         @Override
@@ -538,6 +544,11 @@ public final class Modding {
         }
 
         @Override
+        public Edition getEdition() {
+            return data.get("gameId").getAsInt() == 432 ? JAVA : BEDROCK;
+        }
+
+        @Override
         public Date getPublished() {
             return Date.from(Instant.parse(data.get("dateCreated").getAsString()));
         }
@@ -555,15 +566,15 @@ public final class Modding {
         @Override
         public IntegrationType getType() {
             return switch (data.get("classId").getAsInt()) {
-                case 6 -> MOD;
+                case 6, 4984 -> MOD;
                 case 5 -> PLUGIN;
-                case 12 -> RESOURCEPACK;
-                case 17 -> WORLD;
-                case 4546 -> CUSTOMIZATION;
+                case 12, 6929 -> RESOURCEPACK;
+                case 17, 6913 -> WORLD;
+                case 4546, 6925 -> CUSTOMIZATION;
                 case 4471 -> MODPACK;
                 case 4559 -> ADDON;
                 case 6552 -> SHADER;
-                case 6945 -> DATAPACK;
+                case 6945, 6940 -> DATAPACK;
                 default -> MOD;
             };
         }
@@ -668,10 +679,9 @@ public final class Modding {
             final JsonArray categories = data.get("categories").getAsJsonArray();
             final Set<ICategory> set = new HashSet<>();
             for (JsonElement c : categories) {
-                final int clazz = c.getAsJsonObject().get("classId").getAsInt();
                 final int id = c.getAsJsonObject().get("id").getAsInt();
-                final ICategory t = switch (clazz) {
-                    case 5 -> switch (id) {
+                final ICategory t = switch (getType()) {
+                    case PLUGIN -> switch (id) {
                         case 124 -> PluginCategory.WORLD_EDITING_AND_MANAGEMENT;
                         case 128 -> PluginCategory.INFORMATIONAL;
                         case 115 -> PluginCategory.ADMIN_TOOLS;
@@ -692,75 +702,78 @@ public final class Modding {
                         default -> null;
                     };
 
-                    case 6 -> switch (id) {
-                        case 436 -> ModCategory.FOOD;
+                    case MOD -> switch (id) {
+                        case 436, 8836 -> ModCategory.FOOD;
                         case 408 -> ModCategory.ORES;
-                        case 425 -> ModCategory.MISCELLANEOUS;
-                        case 424 -> ModCategory.COSMETIC;
+                        case 425, 4995, 4994, 8830, 4996 -> ModCategory.MISCELLANEOUS;
+                        case 424, 4987, 4989, 8825 -> ModCategory.COSMETIC;
                         case 5299 -> ModCategory.EDUCATION;
                         case 413 -> ModCategory.PROCESSING;
                         case 423 -> ModCategory.INFORMATION;
                         case 416 -> ModCategory.FARMING;
-                        case 412 -> ModCategory.TECHNOLOGY;
+                        case 412, 8826 -> ModCategory.TECHNOLOGY;
                         case 418 -> ModCategory.GENETICS;
                         case 409 -> ModCategory.STRUCTURES;
-                        case 411 -> ModCategory.MOBS;
+                        case 411, 8833, 4991 -> ModCategory.MOBS;
                         case 419 -> ModCategory.MAGIC;
                         case 426, 427, 432, 428, 429, 4545,
                              433, 4485, 430, 4773, 5314, 5232,
                              6145, 6484, 6954, 7669, 9049 -> ModCategory.ADDONS;
                         case 410 -> ModCategory.DIMENSIONS;
-                        case 434 -> ModCategory.EQUIPMENT;
-                        case 406 -> ModCategory.WORLD_GEN;
-                        case 435 -> ModCategory.UTILITIES;
+                        case 434, 8834 -> ModCategory.EQUIPMENT;
+                        case 406, 4986, 4992 -> ModCategory.WORLD_GEN;
+                        case 435, 4990, 8835, 8832 -> ModCategory.UTILITIES;
                         case 414 -> ModCategory.TRANSPORTATION;
                         case 417 -> ModCategory.ENERGY;
                         case 407 -> ModCategory.BIOMES;
-                        case 422 -> ModCategory.RPG;
+                        case 422, 8829, 4993,
+                             8831, 8827, 8828 -> ModCategory.RPG;
                         case 421 -> ModCategory.LIBRARY;
                         case 420 -> ModCategory.STORAGE;
                         case 4558 -> ModCategory.REDSTONE;
                         case 4843 -> ModCategory.AUTOMATION;
                         case 4671 -> ModCategory.TWITCH_INTEGRATION;
                         case 4906 -> ModCategory.MCREATOR;
-                        case 6814 -> ModCategory.PERFORMANCE;
+                        case 6814, 8837 -> ModCategory.PERFORMANCE;
                         case 6821 -> ModCategory.BUG_FIXES;
                         case 9026 -> ModCategory.CREATIVE;
                         default -> null;
                     };
 
-                    case 12 -> switch (id) {
-                        case 400 -> ResourcepackCategory.REALISTIC;
+                    case RESOURCEPACK -> switch (id) {
+                        case 400, 6932, 6939 -> ResourcepackCategory.REALISTIC;
                         case 399 -> ResourcepackCategory.STEAMPUNK;
                         case 403 -> ResourcepackCategory.TRADITIONAL;
                         case 398 -> ResourcepackCategory.RES_512X;
-                        case 396 -> ResourcepackCategory.RES_128X;
+                        case 396, 6938 -> ResourcepackCategory.RES_128X;
                         case 397 -> ResourcepackCategory.RES_256X;
                         case 402 -> ResourcepackCategory.MEDIEVAL;
-                        case 395 -> ResourcepackCategory.RES_64X;
-                        case 405 -> ResourcepackCategory.MISCELLANEOUS;
-                        case 394 -> ResourcepackCategory.RES_32X;
-                        case 393 -> ResourcepackCategory.RES_16X;
+                        case 395, 6937 -> ResourcepackCategory.RES_64X;
+                        case 405, 6930, 6931 -> ResourcepackCategory.MISCELLANEOUS;
+                        case 394, 6936 -> ResourcepackCategory.RES_32X;
+                        case 393, 6935 -> ResourcepackCategory.RES_16X;
                         case 404 -> ResourcepackCategory.ANIMATED;
                         case 401 -> ResourcepackCategory.MODERN;
                         case 4465 -> ResourcepackCategory.MOD_SUPPORT;
                         case 5193 -> ResourcepackCategory.DATA_PACKS;
                         case 5244 -> ResourcepackCategory.FONT_PACKS;
+                        case 6933 -> ResourcepackCategory.SIMPLISTIC;
+                        case 6934 -> ResourcepackCategory.THEMED;
                         default -> null;
                     };
 
-                    case 17 -> switch (id) {
-                        case 251 -> WorldCategory.PARKOUR;
-                        case 253 -> WorldCategory.SURVIVAL;
-                        case 249 -> WorldCategory.CREATION;
-                        case 250 -> WorldCategory.GAME_MAP;
-                        case 248 -> WorldCategory.ADVENTURE;
+                    case WORLD -> switch (id) {
+                        case 251, 6919 -> WorldCategory.PARKOUR;
+                        case 253, 6924, 6921 -> WorldCategory.SURVIVAL;
+                        case 249, 6915, 6916 -> WorldCategory.CREATION;
+                        case 250, 6923, 6922 -> WorldCategory.GAME_MAP;
+                        case 248, 6914, 6918, 6917 -> WorldCategory.ADVENTURE;
                         case 4464 -> WorldCategory.MODDED_WORLD;
-                        case 252 -> WorldCategory.PUZZLE;
+                        case 252, 6920 -> WorldCategory.PUZZLE;
                         default -> null;
                     };
 
-                    case 4471 -> switch (id) {
+                    case MODPACK -> switch (id) {
                         case 4475 -> ModpackCategory.RPG;
                         case 4487 -> ModpackCategory.FTB;
                         case 4478 -> ModpackCategory.QUESTS;
@@ -781,7 +794,7 @@ public final class Modding {
                         default -> null;
                     };
 
-                    case 4546 -> switch (id) {
+                    case CUSTOMIZATION -> switch (id) {
                         case 4551 -> CustomizationCategory.HARDCORE_QUESTING_MODE;
                         case 4549 -> CustomizationCategory.GUIDEBOOK;
                         case 4554 -> CustomizationCategory.RECIPES;
@@ -790,32 +803,33 @@ public final class Modding {
                         case 4752 -> CustomizationCategory.BUILDING_GADGETS;
                         case 4548 -> CustomizationCategory.LUCKY_BLOCKS;
                         case 4547 -> CustomizationCategory.CONFIGURATION;
-                        case 4555 -> CustomizationCategory.WORLD_GEN;
+                        case 4555, 6926 -> CustomizationCategory.WORLD_GEN;
                         case 4552 -> CustomizationCategory.SCRIPTS;
                         case 5186 -> CustomizationCategory.FANCY_MENU;
+                        case 6928, 6927 -> CustomizationCategory.SKINS;
                         default -> null;
                     };
 
-                    case 4559 -> switch (id) {
+                    case ADDON -> switch (id) {
                         case 4561 -> AddonCategory.RESOURCE_PACKS;
                         case 4562 -> AddonCategory.SCENARIOS;
                         case 4560 -> AddonCategory.WORLDS;
                         default -> null;
                     };
 
-                    case 6945 -> switch (id) {
+                    case DATAPACK -> switch (id) {
                         case 6952 -> DatapackCategory.MAGIC;
-                        case 6945 -> DatapackCategory.MISCELLANEOUS;
+                        case 6945, 6941 -> DatapackCategory.MISCELLANEOUS;
                         case 6554 -> DatapackCategory.FANTASY;
                         case 4465 -> DatapackCategory.MOD_SUPPORT;
                         case 412 -> DatapackCategory.TECH;
                         case 421 -> DatapackCategory.LIBRARY;
-                        case 5191 -> DatapackCategory.UTILITY;
+                        case 5191, 8824 -> DatapackCategory.UTILITY;
                         case 422 -> DatapackCategory.ADVENTURE;
                         default -> null;
                     };
 
-                    case 6552 -> switch (id) {
+                    case SHADER -> switch (id) {
                         case 6555 -> ShaderCategory.VANILLA;
                         case 6554 -> ShaderCategory.FANTASY;
                         case 6553 -> ShaderCategory.REALISTIC;
@@ -1069,6 +1083,11 @@ public final class Modding {
         @Override @Deprecated
         public String getLicense() {
             return "Unknown";
+        }
+
+        @Override
+        public Edition getEdition() {
+            return JAVA;
         }
 
         @Override

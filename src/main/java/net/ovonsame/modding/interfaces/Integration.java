@@ -1,6 +1,7 @@
 package net.ovonsame.modding.interfaces;
 
 import net.ovonsame.modding.Version;
+import net.ovonsame.modding.enumeration.Edition;
 import net.ovonsame.modding.enumeration.Platform;
 import net.ovonsame.modding.enumeration.Status;
 import net.ovonsame.modding.enumeration.IntegrationType;
@@ -44,6 +45,11 @@ public interface Integration extends Iterable<IntegrationFile> {
      * @return A license of the integration
      */
     String getLicense();
+
+    /**
+     * @return An edition of the integration
+     */
+    Edition getEdition();
 
     /**
      * @return Organisation which owns the project. Can be null because projects can be created by individuals

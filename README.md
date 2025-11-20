@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.OVNSAME:Modding:1.2.0'
+    implementation 'com.github.OVNSAME:Modding:1.3.0'
 }
 ```
 
@@ -66,7 +66,7 @@ All of them are listed in ```IntegrationType``` enumeration.
 
 ### Integration data and Enums
 
-Every integration type has its loaders, categories and status.
+Every integration type has its loaders, categories, status and edition.
 
 There are three enums for loaders:
  - ```ModLoader```
@@ -90,6 +90,8 @@ There are all enumerations of possible categories:
 All these categories have ```ICategory.CURSED``` category as standart because lots of categories from Modrinth has the "Cursed" tag, so to lessen the amount of values that category was added.
 
 Integration status is represented by ```IntegrationStatus``` enumeration and can be only one in the integration.
+
+And the edition is represented by ```Edition``` enumeration. It contains only two values: ```JAVA``` and ```BEDROCK```.
 
 ### Interfaces and methods
 
@@ -131,6 +133,8 @@ public class Overview {
             console.println(Arrays.toString(i.getCategories()));
 
             console.println(i.getStatus());
+            
+            console.println(i.getEdition());
 
             console.println(i.getDownloads());
             console.println(i.getLikes());

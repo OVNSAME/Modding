@@ -26,7 +26,7 @@ public enum PluginLoader implements ILoader {
     }
 
     @Override
-    public Date getCreated() {
+    public final Date getCreated() {
         return created;
     }
 }

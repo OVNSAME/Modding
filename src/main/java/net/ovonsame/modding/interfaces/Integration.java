@@ -1,10 +1,7 @@
 package net.ovonsame.modding.interfaces;
 
 import net.ovonsame.modding.Version;
-import net.ovonsame.modding.enumeration.Edition;
-import net.ovonsame.modding.enumeration.Platform;
-import net.ovonsame.modding.enumeration.Status;
-import net.ovonsame.modding.enumeration.IntegrationType;
+import net.ovonsame.modding.enumeration.*;
 import net.ovonsame.modding.enumeration.category.*;
 import net.ovonsame.modding.enumeration.loader.ModLoader;
 import net.ovonsame.modding.interfaces.authority.*;
@@ -205,6 +202,9 @@ public interface Integration extends Iterable<IntegrationFile> {
      */
     Platform getPlatform();
 
+    /**
+     * @return A clear name without special characters and brackets
+     */
     default String getCleanTitle() {
         return getTitle()
                 .replaceAll("\\(.*?\\)", "")
@@ -217,6 +217,18 @@ public interface Integration extends Iterable<IntegrationFile> {
     }
 
     /**
+     * @return The implementation type of the integration
+     * @see ImplementationType
+     */
+    default ImplementationType getImplementationType() {
+        return switch (getType()) {
+            case MOD -> ImplementationType.MAVEN;
+            case PLUGIN, ADDON -> ImplementationType.DOWNLOAD;
+            default -> ImplementationType.NONE;
+        };
+    }
+
+    /**
      * Generates a definition file for the integration with the name as the slug and the extension as {@code .yaml}.
      * File contains main section as the version name and "gradle" section in every version.
      * Gradle sections shows how to add the integration with dependencies to your build.gradle file for specific version.
@@ -226,13 +238,10 @@ public interface Integration extends Iterable<IntegrationFile> {
     default void generate(final File directory) {
         final Set<Version> processed = new HashSet<>();
         final IntegrationType type = getType();
+        final ImplementationType impl = getImplementationType();
         final boolean curseforge = getPlatform() == Platform.CURSEFORGE;
 
-        if(
-                !directory.isDirectory() || type == IntegrationType.CUSTOMIZATION || type == IntegrationType.WORLD
-                || type == IntegrationType.DATAPACK || type == IntegrationType.MODPACK || type == IntegrationType.RESOURCEPACK
-                || type == IntegrationType.SHADER
-        ) return;
+        if(!directory.isDirectory() || impl == ImplementationType.NONE) return;
 
         final String slug = getSlug().replace("-", "_");
         final String name = getCleanTitle();
@@ -251,7 +260,7 @@ public interface Integration extends Iterable<IntegrationFile> {
                     fw.write(version + ":\n");
                     final boolean fabric = version.loader() == ModLoader.FABRIC || version.loader() == ModLoader.QUILT;
 
-                    if(type == IntegrationType.MOD) {
+                    if(impl == ImplementationType.MAVEN) {
                         if(curseforge) {
                             fw.write(
                                     "  gradle: |\n" +

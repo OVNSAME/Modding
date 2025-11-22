@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.OVNSAME:Modding:1.3.0'
+    implementation 'com.github.OVNSAME:Modding:1.4.0'
 }
 ```
 
@@ -33,7 +33,11 @@ import net.ovonsame.modding.enumeration.Platform;
 public class Overview {
     public static void main(String[] args) {
         try{
-            Integration integration = Modding.getIntegration(Platform.CURSEFORGE, "123456", "key");
+            Integration integration1 = Modding.getIntegration(Platform.CURSEFORGE, "123456", "key");
+            
+            Integration integration2 = Modding.getIntegration(Platform.MODRINTH, "123456", null);
+            
+            Integration integration3 = Modding.getIntegration(Platform.SPIGOT, "123456", null);
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -148,6 +152,8 @@ public class Overview {
             console.println(Arrays.toString(i.getScreenshots()));
             
             console.println(i.getType());
+            
+            console.println(i.getImplementationType());
         } catch (IOException e) {
             e.printStackTrace();
         }
